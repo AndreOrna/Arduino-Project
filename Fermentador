@@ -1,0 +1,137 @@
+int t;
+#include <OneWire.h>
+#include<LiquidCrystal_I2C.h>
+OneWire  ds(3);  // cable amarillo al pin 3 y una resis de 4.7 KOhm entre este y Vcc
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
+byte grado[8] =
+ {
+ 0b00001100,
+ 0b00010010,
+ 0b00010010,
+ 0b00001100,
+ 0b00000000,
+ 0b00000000,
+ 0b00000000,
+ 0b00000000
+ };
+void setup(void) {
+  Serial.begin(9600);
+  lcd.begin(16,2);
+  lcd.setCursor(0,0);
+  lcd.print(" INSTITUTO         ");
+  lcd.setCursor(0,1);
+  lcd.print("       SUPERIOR         ");
+ delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print(" TECNOLOGICO          ");
+  lcd.setCursor(0,1);
+  lcd.print("     PUBLICO          ");
+ delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print(" JAVIER  PULGAR        ");
+  lcd.setCursor(0,1);
+  lcd.print("      VIDAL          ");
+ delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print("CONTROLADOR DE         ");
+  lcd.setCursor(0,1);
+  lcd.print("  FERMENTACION        ");
+ delay(2000);
+  lcd.setCursor(0,0);
+  lcd.print("                       ");
+  lcd.setCursor(0,1);
+  lcd.print("                   ");
+  delay(2);    
+ }
+
+void loop(void) {
+  Serial.begin(9600);
+  byte i;
+  byte present = 0;
+  byte type_s;
+  byte data[12];
+  byte addr[8];
+  float celsius, fahrenheit;
+  
+  if ( !ds.search(addr)) {
+    Serial.println("Sensor Dallas DS18B20");
+    ds.reset_search();
+    delay(250);
+    return;
+  }
+  
+  Serial.print("ROM =");
+  for( i = 0; i < 8; i++) 
+  {
+    Serial.print(addr[i], HEX);
+  }
+
+  if (OneWire::crc8(addr, 7) != addr[7]) {
+     return;
+  }
+  Serial.println();
+     switch (addr[0]) {
+    case 0x10:
+       type_s = 1;
+      break;
+    case 0x28:
+       type_s = 0;
+      break;
+    case 0x22:
+      type_s = 0;
+      break;
+    default:
+      return;
+  } 
+  ds.reset();
+  ds.select(addr);
+  ds.write(0x44, 1);        // start conversion, with parasite power on at the end
+  delay(t);     // maybe 750ms is enough, maybe not
+  present = ds.reset();
+  ds.select(addr);    
+  ds.write(0xBE);         // Read Scratchpad
+  for ( i = 0; i < 9; i++) {           // we need 9 bytes
+    data[i] = ds.read();
+  }
+  int16_t raw = (data[1] << 8) | data[0];
+  if (type_s) {
+    raw = raw << 3; // 9 bit resolution default
+    if (data[7] == 0x10) {
+      raw = (raw & 0xFFF0) + 12 - data[6];
+    }
+  }
+  else 
+  {
+    byte cfg = (data[4] & 0x60);
+    if (cfg == 0x00) raw = raw & ~7;  // 9 bit resolution, 93.75 ms
+    else if (cfg == 0x20) raw = raw & ~3; // 10 bit res, 187.5 ms
+    else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
+  }
+  celsius = (float)raw / 16.0;
+  fahrenheit = celsius * 1.8 + 32.0;
+  Serial.print("  Temperature = ");
+  Serial.print(celsius);
+  Serial.print(" Celsius, ");
+  Serial.print(fahrenheit);
+  Serial.println(" Fahrenheit");
+  lcd.setCursor(0,0);
+  lcd.print(" T:");
+  lcd.setCursor(5,0);
+  lcd.print(celsius);
+  
+  lcd.createChar(1,grado);
+  lcd.setCursor(11,0);
+  lcd.print("");
+  lcd.write(1);
+  lcd.createChar(1,grado);
+  lcd.setCursor(11,1);
+  lcd.print("");
+  lcd.write(1);
+  lcd.setCursor(12,0);
+  lcd.print("C");
+  lcd.setCursor(5,1);
+  lcd.print(fahrenheit);
+  lcd.setCursor(12,1);
+  lcd.print("F");
+  delay(t);
+}
