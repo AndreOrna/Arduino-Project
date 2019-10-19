@@ -1,0 +1,47 @@
+int ldr = A0;
+float lectura;
+int ledbajo=5;
+int ledalto=6;
+int led=2;
+
+void setup() 
+{
+pinMode(ldr,NPUT);
+Serial.begin(9600);
+pinMode(ledbajo,OUTPUT);
+pinMode(ledalto,OUTPUT);
+pinMode(led,OUTPUT);
+}
+
+void loop() 
+{
+lectura=analogRead(ldr);
+float volt=lectura*0.0009765625;
+float LUX=120*volt;
+LUX=map(LUX,0,120,0,80);//(lectura,MinimoInicial,MaxInicial,miniSalida,Max.Salida)
+Serial.print(LUX);
+Serial.println(" lux")
+if(LUX<=60)
+{
+  Serial.println("hAY POCA LUZ");
+  digitalWrite(ledbajo,HIGH);
+  digitalWrite(ledalto,LOW);
+  digitalWrite(led,LOW);
+  }
+
+ if(LUX>=70)
+ {
+  Serial.println("MUCHA LUZ !!!");
+  digitalWrite(ledalto,HIGH);
+  digitalWrite(ledbajo,LOW);
+  digitalWrite(led,LOW);
+  }
+  if(LUX > 60 && LUX <70)
+  {
+    Serial.println("Condiciones normales");
+    digitalWrite(led,HIGH);
+    digitalWrite(ledalto,LOW);
+    digitalWrite(ledbajo,LOW);
+    }
+delay(100);
+}
